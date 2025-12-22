@@ -1,0 +1,11 @@
+# Environment file
+.env
+
+# Binary files
+*.exe
+*.out
+main
+
+# Go workspace files
+go.work
+go.work.sum
