@@ -1,8 +1,10 @@
 package main
 
 import (
-	database "backend/authdatabase"
+	database "backend/AuthDatabase"
+	"fmt"
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -22,7 +24,13 @@ func main() {
 	pool, err := database.Connect(connStr)
 	if err != nil {
 		log.Fatal("Connection failed:", err)
+	} else {
+		fmt.Print("Succes")
 	}
 	defer pool.Close()
+
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/signup", database.SignupHandler(pool))
 
 }

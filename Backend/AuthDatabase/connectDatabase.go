@@ -17,7 +17,6 @@ func Connect(connString string) (*pgxpool.Pool, error) {
 		return nil, fmt.Errorf("failed to connect: %w", err)
 	}
 
-	// Test connection
 	if err := pool.Ping(ctx); err != nil {
 		return nil, fmt.Errorf("connection test failed: %w", err)
 	}
