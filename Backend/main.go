@@ -33,4 +33,6 @@ func main() {
 
 	mux.HandleFunc("/signup", database.SignupHandler(pool))
 
+	// 2026 commit :)
+
 }
