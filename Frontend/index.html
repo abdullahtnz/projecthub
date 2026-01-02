@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test - Login & Signup</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        form { margin-bottom: 20px; padding: 20px; border: 1px solid #ccc; }
+        input { margin: 5px; padding: 5px; }
+        button { padding: 5px 10px; }
+    </style>
+</head>
+<body>
+    <h1>Test Login & Signup API</h1>
+
+    <!-- Login Form -->
+    <form id="loginForm">
+        <h2>Login</h2>
+        <input type="email" id="loginEmail" placeholder="Email" required>
+        <input type="password" id="loginPassword" placeholder="Password" required>
+        <button type="submit">Login</button>
+    </form>
+
+    <!-- Signup Form -->
+    <form id="signupForm">
+        <h2>Signup</h2>
+        <input type="email" id="signupEmail" placeholder="Email" required>
+        <input type="password" id="signupPassword" placeholder="Password" required>
+        <input type="password" id="signupConfirmPassword" placeholder="Confirm Password" required>
+        <button type="submit">Signup</button>
+    </form>
+
+    <script>
+        // Note: Replace 'YOUR_LOGIN_ENDPOINT' with your actual login API URL, e.g., 'https://yourapi.com/login'
+        const LOGIN_ENDPOINT = 'YOUR_LOGIN_ENDPOINT';
+
+        // Note: Replace 'YOUR_SIGNUP_ENDPOINT' with your actual signup API URL, e.g., 'https://yourapi.com/signup'
+        const SIGNUP_ENDPOINT = 'YOUR_SIGNUP_ENDPOINT';
+
+        // Note: Adjust headers if your API requires authentication tokens, content-type, etc.
+        // Example: Add 'Authorization': 'Bearer YOUR_TOKEN' if needed.
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const response = await fetch(LOGIN_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // Add other headers if needed, e.g., 'Authorization': 'Bearer token'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    alert('Login successful: ' + JSON.stringify(data));
+                } else {
+                    alert('Login failed: ' + JSON.stringify(data));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error logging in');
+            }
+        });
+
+        document.getElementById('signupForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            const confirmPassword = document.getElementById('signupConfirmPassword').value;
+
+            if (password !== confirmPassword) {
+                alert('Passwords do not match');
+                return;
+            }
+
+            try {
+                const response = await fetch(SIGNUP_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // Add other headers if needed
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    alert('Signup successful: ' + JSON.stringify(data));
+                } else {
+                    alert('Signup failed: ' + JSON.stringify(data));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error signing up');
+            }
+        });
+    </script>
+</body>
+</html>
