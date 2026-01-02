@@ -51,8 +51,10 @@ func main() {
 	mux.HandleFunc("/signup", database.SignupHandler(pool))
 	mux.HandleFunc("/login", database.LoginHandler(pool))
 
+	handler := enableCORS(mux)
+
 	log.Println("Server running on http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", mux))
+	log.Fatal(http.ListenAndServe(":8080", handler))
 
 	// 2026 commit :)
 

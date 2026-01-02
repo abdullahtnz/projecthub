@@ -3,17 +3,14 @@ package database
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
-	"os"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
 )
-
-var jwtSecret = []byte(os.Getenv("JWT"))
 
 type UserLoginRequest struct {
 	Email    string `json:"email"`
@@ -21,72 +18,76 @@ type UserLoginRequest struct {
 }
 
 type LoginUser struct {
-	ID           int       `json:"id"`
+	ID           string    `json:"id"`
 	Email        string    `json:"email"`
 	Username     string    `json:"username"`
 	PasswordHash string    `json:"-"`
 	CreatedAt    time.Time `json:"created_at"`
 }
 
+type LoginResponse struct {
+	Message string `json:"message"`
+	UserID  string `json:"user_id,omitempty"`
+}
+
 func LoginHandler(pool *pgxpool.Pool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// --- CORS ---
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
 		if r.Method != http.MethodPost {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			json.NewEncoder(w).Encode(map[string]string{"message": "Method not allowed"})
 			return
 		}
 
 		var req UserLoginRequest
-
-		err := json.NewDecoder(r.Body).Decode(&req)
-		if err != nil {
-			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]string{"message": "Invalid JSON"})
 			return
 		}
 
 		if req.Email == "" || req.Password == "" {
-			http.Error(w, "Email and password required", http.StatusBadRequest)
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]string{"message": "All fields are required"})
 			return
 		}
 
 		var user LoginUser
-		err = pool.QueryRow(context.Background(),
+		err := pool.QueryRow(context.Background(),
 			"SELECT id, email, username, password_hash FROM users WHERE email=$1",
-			req.Email).Scan(&user.ID, &user.Email, &user.Username, &user.PasswordHash)
+			req.Email,
+		).Scan(&user.ID, &user.Email, &user.Username, &user.PasswordHash)
+
 		if err != nil {
+			fmt.Println("QueryRow error:", err) // <--- This will show the exact error
 			if err == pgx.ErrNoRows {
-				http.Error(w, "invalid credentials", http.StatusUnauthorized)
+				w.WriteHeader(http.StatusUnauthorized)
+				json.NewEncoder(w).Encode(map[string]string{"message": "Invalid email or password"})
 				return
 			}
-			http.Error(w, "server error", http.StatusInternalServerError)
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{"message": "Server error11"})
 			return
 		}
 
-		err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password))
-		if err != nil {
-			http.Error(w, "invalid credentials", http.StatusUnauthorized)
+		if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(map[string]string{"message": "Invalid email or password"})
 			return
 		}
 
-		token, err := generateJWT(user.ID)
-		if err != nil {
-			http.Error(w, "server error", http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
-			"message": "login successful",
-			"token":   token,
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"message": "Login successful",
+			"user_id": user.ID,
 		})
 	}
-}
-
-func generateJWT(userID int) (string, error) {
-	claims := jwt.MapClaims{
-		"user_id": userID,
-		"exp":     time.Now().Add(24 * time.Hour).Unix(), // expires in 24h
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(jwtSecret)
 }

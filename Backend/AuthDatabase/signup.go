@@ -17,9 +17,14 @@ type UserSignupRequest struct {
 	Password string `json:"password"`
 }
 
+type Response struct {
+	Message string `json:"message"`
+	UserID  string `json:"user_id,omitempty"`
+}
+
 // User is the actual record in your database
 type User struct {
-	ID           int       `json:"id"`
+	ID           string    `json:"id"`
 	Email        string    `json:"email"`
 	Username     string    `json:"username"`
 	PasswordHash string    `json:"-"`
@@ -64,13 +69,14 @@ func SignupHandler(pool *pgxpool.Pool) http.HandlerFunc {
 			req.Email, req.Username,
 		).Scan(&exist)
 
-		if errors != nil {
-			http.Error(w, "Database error", http.StatusInternalServerError)
+		if exist {
+			w.WriteHeader(http.StatusConflict)
+			json.NewEncoder(w).Encode(Response{Message: "Email or username already exists"})
 			return
 		}
 
-		if exist {
-			http.Error(w, "Email or username already exists", http.StatusConflict)
+		if errors != nil {
+			http.Error(w, "Database error", http.StatusInternalServerError)
 			return
 		}
 
@@ -82,13 +88,19 @@ func SignupHandler(pool *pgxpool.Pool) http.HandlerFunc {
 		}
 
 		// Add user into database
-		var id int
+		var id string
 		err = pool.QueryRow(
 			context.Background(),
 			`INSERT INTO users (email, username, password_hash, created_at)
 		     VALUES ($1, $2, $3, $4) RETURNING id`,
 			req.Email, req.Username, string(hashedPassword), time.Now(),
 		).Scan(&id)
+
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(Response{
+			Message: "Signup successful",
+			UserID:  id,
+		})
 
 	}
 }

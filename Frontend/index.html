@@ -25,6 +25,7 @@
     <!-- Signup Form -->
     <form id="signupForm">
         <h2>Signup</h2>
+        <input type="text" id="signupUsername" placeholder="Username" required>
         <input type="email" id="signupEmail" placeholder="Email" required>
         <input type="password" id="signupPassword" placeholder="Password" required>
         <input type="password" id="signupConfirmPassword" placeholder="Confirm Password" required>
@@ -43,8 +44,8 @@
 
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
 
             try {
                 const response = await fetch(LOGIN_ENDPOINT, {
@@ -70,9 +71,10 @@
 
         document.getElementById('signupForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = document.getElementById('signupEmail').value;
-            const password = document.getElementById('signupPassword').value;
-            const confirmPassword = document.getElementById('signupConfirmPassword').value;
+            const username = document.getElementById('signupUsername').value.trim();
+            const email = document.getElementById('signupEmail').value.trim();
+            const password = document.getElementById('signupPassword').value.trim();
+            const confirmPassword = document.getElementById('signupConfirmPassword').value.trim();
 
             if (password !== confirmPassword) {
                 alert('Passwords do not match');
@@ -86,7 +88,7 @@
                         'Content-Type': 'application/json',
                         // Add other headers if needed
                     },
-                    body: JSON.stringify({ email, password })
+                    body: JSON.stringify({ username, email, password })
                 });
 
                 const data = await response.json();
