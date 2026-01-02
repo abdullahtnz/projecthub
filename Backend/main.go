@@ -32,6 +32,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/signup", database.SignupHandler(pool))
+	mux.HandleFunc("/login", database.LoginHandler(pool))
 
 	// 2026 commit :)
 
