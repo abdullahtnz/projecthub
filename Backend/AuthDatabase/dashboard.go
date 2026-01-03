@@ -8,6 +8,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+// for handling dashboard
 func DashboardHandler(w http.ResponseWriter, r *http.Request) {
 	claims := r.Context().Value(utils.UserContextKey).(jwt.MapClaims)
 	userID := claims["user_id"]

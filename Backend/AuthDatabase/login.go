@@ -67,6 +67,7 @@ func LoginHandler(pool *pgxpool.Pool) http.HandlerFunc {
 			req.Email,
 		).Scan(&user.ID, &user.Email, &user.Username, &user.PasswordHash)
 
+		//check for email
 		if err != nil {
 			fmt.Println("QueryRow error:", err) // <--- This will show the exact error when occur
 			if err == pgx.ErrNoRows {
@@ -79,6 +80,7 @@ func LoginHandler(pool *pgxpool.Pool) http.HandlerFunc {
 			return
 		}
 
+		//compare passwords
 		if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			json.NewEncoder(w).Encode(map[string]string{"message": "Invalid email or password"})
@@ -93,10 +95,12 @@ func LoginHandler(pool *pgxpool.Pool) http.HandlerFunc {
 		}
 		fmt.Print(token)
 
+		//sends json response
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"message": "Login successful",
 			"user_id": user.ID,
+			"token":   token,
 		})
 	}
 }
