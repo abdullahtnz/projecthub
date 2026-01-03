@@ -8,6 +8,7 @@ import (
 
 var JwtKey = []byte("super_secret_key")
 
+// generates jwt token
 func GenerateJWT(userID string, email string) (string, error) {
 	claims := jwt.MapClaims{
 		"user_id": userID,
