@@ -1,13 +1,13 @@
 package database
 
 import (
+	utils "backend/utils"
 	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
@@ -85,21 +85,18 @@ func LoginHandler(pool *pgxpool.Pool) http.HandlerFunc {
 			return
 		}
 
+		token, err := utils.GenerateJWT(user.ID, user.Email)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{"message": "Failed to generate token"})
+			return
+		}
+		fmt.Print(token)
+
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"message": "Login successful",
 			"user_id": user.ID,
 		})
 	}
-}
-
-func GenerateJWT(userID string, email string) (string, error) {
-	claims := jwt.MapClaims{
-		"user_id": userID,
-		"email":   email,
-		"exp":     time.Now().Add(24 * time.Hour).Unix(),
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(JwtKey)
 }

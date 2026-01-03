@@ -2,6 +2,7 @@ package main
 
 import (
 	database "backend/AuthDatabase"
+	utils "backend/utils"
 	"fmt"
 	"log"
 	"net/http"
@@ -49,6 +50,8 @@ func main() {
 
 	mux.HandleFunc("/signup", database.SignupHandler(pool))
 	mux.HandleFunc("/login", database.LoginHandler(pool))
+	mux.Handle("/dashboard", utils.JWTMiddleware(http.HandlerFunc(database.DashboardHandler)))
+	mux.Handle("/profile", utils.JWTMiddleware(http.HandlerFunc(database.DashboardHandler)))
 
 	handler := enableCORS(mux)
 

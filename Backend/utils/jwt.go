@@ -6,9 +6,9 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var JwtKey = []byte("super_secret_key") // change later
+var JwtKey = []byte("super_secret_key")
 
-func GenerateJWT(userID int, email string) (string, error) {
+func GenerateJWT(userID string, email string) (string, error) {
 	claims := jwt.MapClaims{
 		"user_id": userID,
 		"email":   email,
