@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
@@ -67,7 +68,7 @@ func LoginHandler(pool *pgxpool.Pool) http.HandlerFunc {
 		).Scan(&user.ID, &user.Email, &user.Username, &user.PasswordHash)
 
 		if err != nil {
-			fmt.Println("QueryRow error:", err) // <--- This will show the exact error
+			fmt.Println("QueryRow error:", err) // <--- This will show the exact error when occur
 			if err == pgx.ErrNoRows {
 				w.WriteHeader(http.StatusUnauthorized)
 				json.NewEncoder(w).Encode(map[string]string{"message": "Invalid email or password"})
@@ -90,4 +91,15 @@ func LoginHandler(pool *pgxpool.Pool) http.HandlerFunc {
 			"user_id": user.ID,
 		})
 	}
+}
+
+func GenerateJWT(userID string, email string) (string, error) {
+	claims := jwt.MapClaims{
+		"user_id": userID,
+		"email":   email,
+		"exp":     time.Now().Add(24 * time.Hour).Unix(),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(JwtKey)
 }
