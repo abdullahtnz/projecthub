@@ -54,6 +54,9 @@ func main() {
 	mux.HandleFunc("/login", database.LoginHandler(pool))
 	mux.Handle("/dashboard", utils.JWTMiddleware(http.HandlerFunc(database.DashboardHandler)))
 	mux.Handle("/profile", utils.JWTMiddleware(http.HandlerFunc(database.DashboardHandler)))
+	mux.Handle("/posts", utils.JWTMiddleware(http.HandlerFunc(handlers.CreatePost)))
+	mux.Handle("/posts/feed", http.HandlerFunc(handlers.GetPosts))
+	mux.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads"))))
 
 	handler := enableCORS(mux)
 
