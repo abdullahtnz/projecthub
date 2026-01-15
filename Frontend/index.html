@@ -1,107 +1,394 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>API Test - Login & Signup</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        form { margin-bottom: 20px; padding: 20px; border: 1px solid #ccc; }
-        input { margin: 5px; padding: 5px; }
-        button { padding: 5px 10px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Social Media Practice</title>
+<style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    form { margin-bottom: 20px; padding: 20px; border: 1px solid #ccc; }
+    input, textarea { margin: 5px; padding: 5px; width: 100%; }
+    button { padding: 5px 10px; margin-top: 5px; }
+    .post { border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; }
+    .post img { max-width: 200px; margin-right: 10px; }
+    .error { color: red; }
+    .success { color: green; }
+</style>
 </head>
 <body>
-    <h1>Test Login & Signup API</h1>
 
-    <!-- Login Form -->
-    <form id="loginForm">
-        <h2>Login</h2>
-        <input type="email" id="loginEmail" placeholder="Email" required>
-        <input type="password" id="loginPassword" placeholder="Password" required>
-        <button type="submit">Login</button>
-    </form>
+<h1>Social Media Practice</h1>
 
-    <!-- Signup Form -->
-    <form id="signupForm">
-        <h2>Signup</h2>
-        <input type="text" id="signupUsername" placeholder="Username" required>
-        <input type="email" id="signupEmail" placeholder="Email" required>
-        <input type="password" id="signupPassword" placeholder="Password" required>
-        <input type="password" id="signupConfirmPassword" placeholder="Confirm Password" required>
-        <button type="submit">Signup</button>
-    </form>
+<!-- Signup Form -->
+<form id="signupForm">
+    <h2>Signup</h2>
+    <input type="text" id="signupUsername" placeholder="Username" required>
+    <input type="email" id="signupEmail" placeholder="Email" required>
+    <input type="password" id="signupPassword" placeholder="Password" required>
+    <input type="password" id="signupConfirmPassword" placeholder="Confirm Password" required>
+    <button type="submit">Signup</button>
+    <div id="signupMessage" class="message"></div>
+</form>
 
-    <script>
-        // Note: Replace 'YOUR_LOGIN_ENDPOINT' with your actual login API URL, e.g., 'https://yourapi.com/login'
-        const LOGIN_ENDPOINT = 'http://localhost:8080/login';
+<!-- Login Form -->
+<form id="loginForm">
+    <h2>Login</h2>
+    <input type="email" id="loginEmail" placeholder="Email" required>
+    <input type="password" id="loginPassword" placeholder="Password" required>
+    <button type="submit">Login</button>
+    <div id="loginMessage" class="message"></div>
+</form>
 
-        // Note: Replace 'YOUR_SIGNUP_ENDPOINT' with your actual signup API URL, e.g., 'https://yourapi.com/signup'
-        const SIGNUP_ENDPOINT = 'http://localhost:8080/signup';
+<!-- User Info (hidden until login) -->
+<div id="userInfo" style="display:none; padding: 10px; background: #f0f0f0; margin-bottom: 20px;">
+    <p>Logged in as: <span id="loggedInUser"></span></p>
+    <button onclick="logout()">Logout</button>
+</div>
 
-        // Note: Adjust headers if your API requires authentication tokens, content-type, etc.
-        // Example: Add 'Authorization': 'Bearer YOUR_TOKEN' if needed.
+<!-- Create Post Form (hidden until login) -->
+<form id="postForm" style="display:none;">
+    <h2>Create Post</h2>
+    <textarea id="content" placeholder="Write something..." rows="3" required></textarea>
+    <input type="file" id="images" multiple accept="image/*">
+    <button type="submit">Post</button>
+    <div id="postMessage" class="message"></div>
+</form>
 
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('loginEmail').value.trim();
-            const password = document.getElementById('loginPassword').value.trim();
+<h2>Feed</h2>
+<div id="feed"></div>
 
-            try {
-                const response = await fetch(LOGIN_ENDPOINT, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        // Add other headers if needed, e.g., 'Authorization': 'Bearer token'
-                    },
-                    body: JSON.stringify({ email, password })
-                });
+<script>
+// Storage keys
+const TOKEN_KEY = 'auth_token';
+const USER_KEY = 'user_info';
 
-                const data = await response.json();
-                if (response.ok) {
-                    alert('Login successful: ' + JSON.stringify(data));
-                } else {
-                    alert('Login failed: ' + JSON.stringify(data));
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error logging in');
-            }
+// Endpoints
+const SIGNUP_ENDPOINT = "http://localhost:8080/signup";
+const LOGIN_ENDPOINT = "http://localhost:8080/login";
+const CREATE_POST_ENDPOINT = "http://localhost:8080/posts";
+const FEED_ENDPOINT = "http://localhost:8080/posts";
+
+// Initialize on page load
+window.onload = function() {
+    const token = getToken();
+    if (token) {
+        showLoggedInUI();
+    }
+    getFeed();
+};
+
+// ----------------- Token Management -----------------
+function getToken() {
+    return localStorage.getItem(TOKEN_KEY);
+}
+
+function saveToken(token) {
+    localStorage.setItem(TOKEN_KEY, token);
+}
+
+function saveUserInfo(user) {
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+}
+
+function getUserInfo() {
+    const userStr = localStorage.getItem(USER_KEY);
+    return userStr ? JSON.parse(userStr) : null;
+}
+
+function clearAuth() {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    hideLoggedInUI();
+}
+
+function showLoggedInUI() {
+    const user = getUserInfo();
+    document.getElementById('userInfo').style.display = 'block';
+    document.getElementById('postForm').style.display = 'block';
+    if (user) {
+        document.getElementById('loggedInUser').textContent = user.email || user.username || 'User';
+    }
+}
+
+function hideLoggedInUI() {
+    document.getElementById('userInfo').style.display = 'none';
+    document.getElementById('postForm').style.display = 'none';
+    document.getElementById('postForm').reset();
+}
+
+function logout() {
+    clearAuth();
+    alert('Logged out successfully');
+    window.location.reload();
+}
+
+// ----------------- Signup -----------------
+document.getElementById('signupForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const messageDiv = document.getElementById('signupMessage');
+    messageDiv.textContent = '';
+    messageDiv.className = 'message';
+    
+    const username = document.getElementById('signupUsername').value.trim();
+    const email = document.getElementById('signupEmail').value.trim();
+    const password = document.getElementById('signupPassword').value.trim();
+    const confirmPassword = document.getElementById('signupConfirmPassword').value.trim();
+
+    if (password !== confirmPassword) {
+        messageDiv.textContent = 'Passwords do not match';
+        messageDiv.className = 'error';
+        return;
+    }
+
+    try {
+        const response = await fetch(SIGNUP_ENDPOINT, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ username, email, password })
         });
 
-        document.getElementById('signupForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const username = document.getElementById('signupUsername').value.trim();
-            const email = document.getElementById('signupEmail').value.trim();
-            const password = document.getElementById('signupPassword').value.trim();
-            const confirmPassword = document.getElementById('signupConfirmPassword').value.trim();
+        const data = await response.json();
+        console.log('Signup response:', data);
+        
+        if (response.ok) {
+            messageDiv.textContent = 'Signup successful! Please login.';
+            messageDiv.className = 'success';
+            document.getElementById('signupForm').reset();
+        } else {
+            messageDiv.textContent = data.error || data.message || 'Signup failed';
+            messageDiv.className = 'error';
+        }
+    } catch (err) {
+        console.error('Signup error:', err);
+        messageDiv.textContent = 'Error connecting to server';
+        messageDiv.className = 'error';
+    }
+});
 
-            if (password !== confirmPassword) {
-                alert('Passwords do not match');
-                return;
+// ----------------- Login -----------------
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const messageDiv = document.getElementById('loginMessage');
+    messageDiv.textContent = '';
+    messageDiv.className = 'message';
+    
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value.trim();
+
+    try {
+        const response = await fetch(LOGIN_ENDPOINT, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+        console.log('Login response:', data);
+        
+        if (response.ok) {
+            // Check different possible token field names
+            const token = data.token || data.access_token || data.jwt;
+            if (token) {
+                saveToken(token);
+                saveUserInfo(data.user || { email: email });
+                messageDiv.textContent = 'Login successful!';
+                messageDiv.className = 'success';
+                document.getElementById('loginForm').reset();
+                showLoggedInUI();
+                getFeed();
+            } else {
+                messageDiv.textContent = 'No token received from server';
+                messageDiv.className = 'error';
+                console.error('Token not found in response:', data);
             }
+        } else {
+            messageDiv.textContent = data.error || data.message || 'Login failed';
+            messageDiv.className = 'error';
+        }
+    } catch (err) {
+        console.error('Login error:', err);
+        messageDiv.textContent = 'Error connecting to server';
+        messageDiv.className = 'error';
+    }
+});
 
-            try {
-                const response = await fetch(SIGNUP_ENDPOINT, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        // Add other headers if needed
-                    },
-                    body: JSON.stringify({ username, email, password })
-                });
+// ----------------- Create Post -----------------
+document.getElementById('postForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const messageDiv = document.getElementById('postMessage');
+    messageDiv.textContent = '';
+    messageDiv.className = 'message';
+    
+    const token = getToken();
+    if (!token) {
+        messageDiv.textContent = 'Please login first';
+        messageDiv.className = 'error';
+        return;
+    }
+    
+    const content = document.getElementById('content').value.trim();
+    const imagesInput = document.getElementById('images');
+    
+    if (!content) {
+        messageDiv.textContent = 'Post content cannot be empty';
+        messageDiv.className = 'error';
+        return;
+    }
 
-                const data = await response.json();
-                if (response.ok) {
-                    alert('Signup successful: ' + JSON.stringify(data));
-                } else {
-                    alert('Signup failed: ' + JSON.stringify(data));
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error signing up');
+    const formData = new FormData();
+    formData.append('content', content);
+    
+    // Add images if any
+    if (imagesInput.files.length > 0) {
+        for (let i = 0; i < imagesInput.files.length; i++) {
+            formData.append('images', imagesInput.files[i]);
+        }
+    }
+
+    try {
+        console.log('Creating post with token:', token.substring(0, 20) + '...');
+        
+        const response = await fetch(CREATE_POST_ENDPOINT, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                // Don't set Content-Type for FormData - browser sets it automatically with boundary
+            },
+            body: formData
+        });
+
+        console.log('Post response status:', response.status);
+        
+        let data;
+        const responseText = await response.text();
+        console.log('Post response text:', responseText);
+        
+        try {
+            data = JSON.parse(responseText);
+        } catch (e) {
+            console.error('Failed to parse JSON:', responseText);
+            throw new Error('Invalid response from server');
+        }
+        
+        if (response.ok) {
+            messageDiv.textContent = 'Post created successfully!';
+            messageDiv.className = 'success';
+            document.getElementById('postForm').reset();
+            getFeed();
+        } else {
+            if (response.status === 401) {
+                messageDiv.textContent = 'Session expired. Please login again.';
+                messageDiv.className = 'error';
+                clearAuth();
+            } else {
+                messageDiv.textContent = data.error || data.message || 'Failed to create post';
+                messageDiv.className = 'error';
+            }
+        }
+    } catch (err) {
+        console.error('Error creating post:', err);
+        messageDiv.textContent = err.message || 'Error creating post';
+        messageDiv.className = 'error';
+    }
+});
+
+// ----------------- Get Feed -----------------
+async function getFeed() {
+    const feedDiv = document.getElementById('feed');
+    
+    try {
+        feedDiv.innerHTML = '<p>Loading feed...</p>';
+        
+        console.log('Fetching feed from:', FEED_ENDPOINT);
+        const response = await fetch(FEED_ENDPOINT, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json'
             }
         });
-    </script>
+        
+        console.log('Feed response status:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Feed data:', data);
+        
+        if (!data || (Array.isArray(data) && data.length === 0)) {
+            feedDiv.innerHTML = `
+                <div class="no-posts">
+                    <h3>No posts yet</h3>
+                    <p>Be the first to create a post!</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // Handle both array and object responses
+        const posts = Array.isArray(data) ? data : (data.posts || []);
+        
+        if (posts.length === 0) {
+            feedDiv.innerHTML = `
+                <div class="no-posts">
+                    <h3>No posts yet</h3>
+                    <p>Be the first to create a post!</p>
+                </div>
+            `;
+            return;
+        }
+        
+        feedDiv.innerHTML = '';
+        
+        posts.forEach(post => {
+            const postEl = document.createElement('div');
+            postEl.className = 'post';
+
+            let imagesHTML = '';
+            if (post.images && Array.isArray(post.images) && post.images.length > 0) {
+                imagesHTML = '<div class="post-images">';
+                post.images.forEach(img => {
+                    if (img) {
+                        const imageUrl = img.startsWith('http') ? img : `http://localhost:8080/${img}`;
+                        imagesHTML += `<img src="${imageUrl}" alt="post image" style="max-width: 200px; margin: 5px;">`;
+                    }
+                });
+                imagesHTML += '</div>';
+            }
+
+            postEl.innerHTML = `
+                <h4>${post.user_id || 'Anonymous'}</h4>
+                <p>${post.content || ''}</p>
+                ${imagesHTML}
+                <small>${post.created_at ? new Date(post.created_at).toLocaleString() : ''}</small>
+                <hr>
+            `;
+            feedDiv.appendChild(postEl);
+        });
+        
+    } catch (err) {
+        console.error('Error loading feed:', err);
+        feedDiv.innerHTML = `
+            <div class="error">
+                <h3>Error loading feed</h3>
+                <p>${err.message}</p>
+                <button onclick="getFeed()">Retry</button>
+            </div>
+        `;
+    }
+}
+
+// Check auth status on page load
+if (getToken()) {
+    showLoggedInUI();
+}
+</script>
 </body>
 </html>

@@ -14,7 +14,6 @@ import (
 
 func enableCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
@@ -50,19 +49,32 @@ func main() {
 
 	mux := http.NewServeMux()
 
+	// Public routes
 	mux.HandleFunc("/signup", database.SignupHandler(pool))
 	mux.HandleFunc("/login", database.LoginHandler(pool))
+	mux.HandleFunc("/posts/feed", handlers.GetPosts) // Public feed
+	mux.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads"))))
+
+	// Protected routes (with middleware)
 	mux.Handle("/dashboard", utils.JWTMiddleware(http.HandlerFunc(database.DashboardHandler)))
 	mux.Handle("/profile", utils.JWTMiddleware(http.HandlerFunc(database.DashboardHandler)))
-	mux.Handle("/posts", utils.JWTMiddleware(http.HandlerFunc(handlers.CreatePost)))
-	mux.Handle("/posts/feed", http.HandlerFunc(handlers.GetPosts))
-	mux.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads"))))
+	mux.Handle("/posts", utils.JWTMiddleware(http.HandlerFunc(handlers.CreatePost))) // ← FIXED: Added middleware!
+
+	// Alternative: Handle GET and POST separately on /posts
+	/*
+		mux.HandleFunc("/posts", func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == "GET" {
+				handlers.GetPosts(w, r) // Public feed
+			} else if r.Method == "POST" {
+				utils.JWTMiddleware(http.HandlerFunc(handlers.CreatePost)).ServeHTTP(w, r)
+			} else {
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+		})
+	*/
 
 	handler := enableCORS(mux)
 
 	log.Println("Server running on http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", handler))
-
-	// 2026 commit :)
-
 }
