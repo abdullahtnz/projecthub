@@ -42,12 +42,14 @@ func LoginHandler(pool *pgxpool.Pool) http.HandlerFunc {
 			return
 		}
 
+		//checks request method
 		if r.Method != http.MethodPost {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			json.NewEncoder(w).Encode(map[string]string{"message": "Method not allowed"})
 			return
 		}
 
+		//check request info
 		var req UserLoginRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
@@ -55,12 +57,14 @@ func LoginHandler(pool *pgxpool.Pool) http.HandlerFunc {
 			return
 		}
 
+		//check existence
 		if req.Email == "" || req.Password == "" {
 			w.WriteHeader(http.StatusBadRequest)
 			json.NewEncoder(w).Encode(map[string]string{"message": "All fields are required"})
 			return
 		}
 
+		//scan database
 		var user LoginUser
 		err := pool.QueryRow(context.Background(),
 			"SELECT id, email, username, password_hash FROM users WHERE email=$1",

@@ -2,6 +2,7 @@ package main
 
 import (
 	database "backend/AuthDatabase"
+	handlers "backend/post/handlers"
 	utils "backend/utils"
 	"fmt"
 	"log"
@@ -45,6 +46,7 @@ func main() {
 		fmt.Println("Succes")
 	}
 	defer pool.Close()
+	handlers.DB = pool
 
 	mux := http.NewServeMux()
 
