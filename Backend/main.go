@@ -52,26 +52,13 @@ func main() {
 	// Public routes
 	mux.HandleFunc("/signup", database.SignupHandler(pool))
 	mux.HandleFunc("/login", database.LoginHandler(pool))
-	mux.HandleFunc("/posts/feed", handlers.GetPosts) // Public feed
+	mux.HandleFunc("/posts/feed", handlers.GetPosts) // GET only, public
 	mux.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads"))))
 
 	// Protected routes (with middleware)
 	mux.Handle("/dashboard", utils.JWTMiddleware(http.HandlerFunc(database.DashboardHandler)))
 	mux.Handle("/profile", utils.JWTMiddleware(http.HandlerFunc(database.DashboardHandler)))
-	mux.Handle("/posts", utils.JWTMiddleware(http.HandlerFunc(handlers.CreatePost))) // ← FIXED: Added middleware!
-
-	// Alternative: Handle GET and POST separately on /posts
-	/*
-		mux.HandleFunc("/posts", func(w http.ResponseWriter, r *http.Request) {
-			if r.Method == "GET" {
-				handlers.GetPosts(w, r) // Public feed
-			} else if r.Method == "POST" {
-				utils.JWTMiddleware(http.HandlerFunc(handlers.CreatePost)).ServeHTTP(w, r)
-			} else {
-				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			}
-		})
-	*/
+	mux.Handle("/posts", utils.JWTMiddleware(http.HandlerFunc(handlers.CreatePost))) // POST only, protected
 
 	handler := enableCORS(mux)
 

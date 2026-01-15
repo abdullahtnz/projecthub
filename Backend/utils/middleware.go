@@ -51,16 +51,23 @@ func GenerateJWT(userID string, email string) (string, error) {
 func JWTMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Skip auth for public routes
+		if r.Method == "OPTIONS" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// Public routes - allow GET /posts (feed) without auth
 		publicRoutes := map[string][]string{
 			"/login":      {"POST"},
 			"/signup":     {"POST"},
-			"/register":   {"POST"},
-			"/posts/feed": {"GET"}, // Public feed
+			"/posts":      {"GET"}, // GET /posts is public feed
+			"/posts/feed": {"GET"}, // Also allow /posts/feed
 		}
 
 		if methods, exists := publicRoutes[r.URL.Path]; exists {
 			for _, method := range methods {
 				if r.Method == method {
+					fmt.Printf("DEBUG: Allowing public access to %s %s\n", r.Method, r.URL.Path)
 					next.ServeHTTP(w, r)
 					return
 				}

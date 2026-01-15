@@ -100,11 +100,14 @@ func LoginHandler(pool *pgxpool.Pool) http.HandlerFunc {
 		fmt.Print(token)
 
 		//sends json response
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"message": "Login successful",
-			"user_id": user.ID,
-			"token":   token,
+			"message":  "Login successful",
+			"user_id":  user.ID,
+			"email":    user.Email,
+			"username": user.Username,
+			"token":    token,
 		})
 	}
 }
