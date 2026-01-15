@@ -74,3 +74,46 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 }
+
+func GetPosts(w http.ResponseWriter, r *http.Request) {
+
+	rows, err := DB.Query(
+		context.Background(),
+		`SELECT p.id, p.user_id, p.content, p.created_at,
+                COALESCE(array_agg(pi.image_url) FILTER (WHERE pi.image_url IS NOT NULL), '{}') AS images
+         FROM posts p
+         LEFT JOIN post_images pi ON pi.post_id = p.id
+         GROUP BY p.id
+         ORDER BY p.created_at DESC`,
+	)
+	if err != nil {
+		http.Error(w, "Failed to fetch posts", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	type PostResp struct {
+		ID        string   `json:"id"`
+		UserID    string   `json:"user_id"`
+		Content   string   `json:"content"`
+		Images    []string `json:"images"`
+		CreatedAt string   `json:"created_at"`
+	}
+
+	var posts []PostResp
+
+	for rows.Next() {
+		var p PostResp
+		var images []string
+
+		err := rows.Scan(&p.ID, &p.UserID, &p.Content, &p.CreatedAt, &images)
+		if err != nil {
+			http.Error(w, "Failed to read post", http.StatusInternalServerError)
+			return
+		}
+		p.Images = images
+		posts = append(posts, p)
+	}
+
+	json.NewEncoder(w).Encode(posts)
+}
