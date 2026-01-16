@@ -4,10 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
-	"backend/utils" // Update with your actual import path
+	"backend/utils"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -46,6 +50,7 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 
 	// Generate post ID
 	postID := uuid.New().String()
+	createdAt := time.Now()
 
 	fmt.Printf("DEBUG CreatePost: Inserting - PostID: %s, UserID: %s, Content: %s\n",
 		postID, userID, content)
@@ -78,9 +83,21 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("DEBUG CreatePost: User verified in DB: %s\n", dbUserID)
 
 	// Try simple insert first
-	_, err = DB.Exec(context.Background(),
-		"INSERT INTO posts (id, user_id, content) VALUES ($1, $2, $3)",
-		postID, userID, content)
+	tx, err := DB.Begin(context.Background())
+	if err != nil {
+		fmt.Printf("DEBUG: Transaction begin error: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "Database error",
+		})
+		return
+	}
+	defer tx.Rollback(context.Background())
+
+	// Insert post using transaction
+	_, err = tx.Exec(context.Background(),
+		"INSERT INTO posts (id, user_id, content, created_at) VALUES ($1, $2, $3, $4)",
+		postID, userID, content, createdAt)
 
 	if err != nil {
 		fmt.Printf("DEBUG CreatePost: Database error: %v\n", err)
@@ -99,15 +116,102 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println("DEBUG CreatePost: Post created successfully!")
 
-	// Success response
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"message": "Post created successfully",
-		"post_id": postID,
-		"user_id": userID,
-		"content": content,
-	})
+	var imageUrls []string
+	files := r.MultipartForm.File["images"]
+
+	// Create uploads directory if it doesn't exist
+	uploadDir := "uploads"
+	if err := os.MkdirAll(uploadDir, 0755); err != nil {
+		fmt.Printf("DEBUG: Failed to create uploads directory: %v\n", err)
+	} else {
+		fmt.Printf("DEBUG: Uploads directory ready: %s\n", uploadDir)
+	}
+
+	// Process each uploaded image
+	for _, fileHeader := range files {
+		// Open the file
+		file, err := fileHeader.Open()
+		if err != nil {
+			fmt.Printf("DEBUG: Failed to open file %s: %v\n", fileHeader.Filename, err)
+			continue
+		}
+		defer file.Close()
+
+		// Validate file size (max 5MB per image)
+		if fileHeader.Size > 5<<20 {
+			fmt.Printf("DEBUG: File %s too large: %d bytes\n", fileHeader.Filename, fileHeader.Size)
+			continue
+		}
+
+		// Validate file type
+		buff := make([]byte, 512)
+		_, err = file.Read(buff)
+		if err != nil {
+			fmt.Printf("DEBUG: Failed to read file for validation: %v\n", err)
+			continue
+		}
+		file.Seek(0, 0) // Reset file pointer
+
+		fileType := http.DetectContentType(buff)
+		if !strings.HasPrefix(fileType, "image/") {
+			fmt.Printf("DEBUG: File %s is not an image: %s\n", fileHeader.Filename, fileType)
+			continue
+		}
+
+		// Generate unique filename
+		fileExt := filepath.Ext(fileHeader.Filename)
+		if fileExt == "" {
+			// Default to .jpg if no extension
+			fileExt = ".jpg"
+		}
+
+		imageID := uuid.New().String()
+		newFilename := imageID + fileExt
+		filePath := filepath.Join(uploadDir, newFilename)
+
+		// Save file to disk
+		dst, err := os.Create(filePath)
+		if err != nil {
+			fmt.Printf("DEBUG: Failed to create file %s: %v\n", filePath, err)
+			continue
+		}
+		defer dst.Close()
+
+		// Copy file content
+		if _, err := io.Copy(dst, file); err != nil {
+			fmt.Printf("DEBUG: Failed to save file %s: %v\n", filePath, err)
+			os.Remove(filePath) // Clean up failed file
+			continue
+		}
+
+		// Insert image record into database
+		imageRecordID := uuid.New().String()
+		_, err = tx.Exec(context.Background(),
+			"INSERT INTO post_images (id, post_id, image_url) VALUES ($1, $2, $3)",
+			imageRecordID, postID, newFilename)
+
+		if err != nil {
+			fmt.Printf("DEBUG: Failed to insert image record: %v\n", err)
+			continue
+		}
+
+		// Add to response
+		imageUrls = append(imageUrls, newFilename)
+		fmt.Printf("DEBUG: Image saved: %s\n", newFilename)
+
+		// Success response
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"message": "Post created successfully",
+			"post_id": postID,
+			"user_id": userID,
+			"content": content,
+			"images":  imageUrls,
+		})
+	}
+
 }
+
 func GetPosts(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
