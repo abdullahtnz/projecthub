@@ -13,6 +13,61 @@
     .post img { max-width: 200px; margin-right: 10px; }
     .error { color: red; }
     .success { color: green; }
+    .post-images {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.image-container {
+    flex: 0 0 auto;
+}
+
+.post-image {
+    max-width: 300px;
+    max-height: 300px;
+    border-radius: 8px;
+    object-fit: cover;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.post-image:hover {
+    transform: scale(1.02);
+}
+
+.post-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.post-user {
+    font-weight: bold;
+    color: #333;
+}
+
+.post-time {
+    color: #888;
+    font-size: 0.9em;
+}
+
+.post-content {
+    margin-bottom: 15px;
+    line-height: 1.5;
+    color: #333;
+}
+
+.post {
+    background: white;
+    border: 1px solid #e1e1e1;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
 </style>
 </head>
 <body>
@@ -300,74 +355,66 @@ document.getElementById('postForm').addEventListener('submit', async (e) => {
 
 // ----------------- Get Feed -----------------
 async function getFeed() {
-    const feedDiv = document.getElementById('feed');
-    
     try {
-        feedDiv.innerHTML = '<p>Loading feed...</p>';
-        
-        console.log('Fetching feed from:', FEED_ENDPOINT);
-        const response = await fetch(FEED_ENDPOINT, {
+        const response = await fetch('http://localhost:8080/posts/feed', {
             method: 'GET',
             headers: {
                 'Accept': 'application/json'
             }
         });
         
-        console.log('Feed response status:', response.status);
-        
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
         
-        const data = await response.json();
-        console.log('Feed data:', data);
+        const posts = await response.json();
+        console.log('Feed data:', posts);
         
-        if (!data || (Array.isArray(data) && data.length === 0)) {
-            feedDiv.innerHTML = `
-                <div class="no-posts">
-                    <h3>No posts yet</h3>
-                    <p>Be the first to create a post!</p>
-                </div>
-            `;
-            return;
-        }
-        
-        // Handle both array and object responses
-        const posts = Array.isArray(data) ? data : (data.posts || []);
-        
-        if (posts.length === 0) {
-            feedDiv.innerHTML = `
-                <div class="no-posts">
-                    <h3>No posts yet</h3>
-                    <p>Be the first to create a post!</p>
-                </div>
-            `;
-            return;
-        }
-        
+        const feedDiv = document.getElementById('feed');
         feedDiv.innerHTML = '';
+        
+        if (!posts || posts.length === 0) {
+            feedDiv.innerHTML = `
+                <div class="no-posts">
+                    <h3>No posts yet</h3>
+                    <p>Be the first to create a post!</p>
+                </div>
+            `;
+            return;
+        }
         
         posts.forEach(post => {
             const postEl = document.createElement('div');
             postEl.className = 'post';
-
+            
+            // Build images HTML if there are images
             let imagesHTML = '';
-            if (post.images && Array.isArray(post.images) && post.images.length > 0) {
+            if (post.images && post.images.length > 0) {
                 imagesHTML = '<div class="post-images">';
                 post.images.forEach(img => {
                     if (img) {
-                        const imageUrl = img.startsWith('http') ? img : `http://localhost:8080/${img}`;
-                        imagesHTML += `<img src="${imageUrl}" alt="post image" style="max-width: 200px; margin: 5px;">`;
+                        // Use the correct URL path
+                        const imageUrl = img.startsWith('http') ? img : `http://localhost:8080/uploads/${img}`;
+                        imagesHTML += `
+                            <div class="image-container">
+                                <img src="${imageUrl}" 
+                                     alt="Post image" 
+                                     class="post-image"
+                                     loading="lazy">
+                            </div>
+                        `;
                     }
                 });
                 imagesHTML += '</div>';
             }
-
+            
             postEl.innerHTML = `
-                <h4>${post.user_id || 'Anonymous'}</h4>
-                <p>${post.content || ''}</p>
+                <div class="post-header">
+                    <strong class="post-user">${post.user_id || 'Anonymous'}</strong>
+                    <span class="post-time">${post.created_at ? new Date(post.created_at).toLocaleString() : ''}</span>
+                </div>
+                <div class="post-content">${post.content || ''}</div>
                 ${imagesHTML}
-                <small>${post.created_at ? new Date(post.created_at).toLocaleString() : ''}</small>
                 <hr>
             `;
             feedDiv.appendChild(postEl);
@@ -375,6 +422,7 @@ async function getFeed() {
         
     } catch (err) {
         console.error('Error loading feed:', err);
+        const feedDiv = document.getElementById('feed');
         feedDiv.innerHTML = `
             <div class="error">
                 <h3>Error loading feed</h3>
