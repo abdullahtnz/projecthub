@@ -14,6 +14,7 @@ import (
 	"backend/utils"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -231,31 +232,57 @@ func GetPosts(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	// Get user ID from context if authenticated
-	userID, _ := utils.GetUserIDFromContext(r) // Ignore error for public feed
+	userID, _ := utils.GetUserIDFromContext(r)
 
-	query := `
-        SELECT 
-            p.id, 
-            p.user_id, 
-            p.content, 
-            p.created_at,
-            COALESCE(
-                json_agg(DISTINCT pi.image_url) FILTER (WHERE pi.image_url IS NOT NULL),
-                '[]'
-            ) as images,
-            COUNT(DISTINCT l.id) as like_count,
-            CASE WHEN $1 != '' THEN 
-                EXISTS(SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = $1)
-            ELSE false END as liked_by_me
-        FROM posts p
-        LEFT JOIN post_images pi ON p.id = pi.post_id
-        LEFT JOIN post_likes l ON p.id = l.post_id
-        GROUP BY p.id, p.user_id, p.content, p.created_at
-        ORDER BY p.created_at DESC
-    `
+	var query string
+	var rows pgx.Rows
+	var err error
 
-	rows, err := DB.Query(r.Context(), query, userID)
+	if userID == "" {
+		// Public feed query (no liked_by_me field)
+		query = `
+            SELECT 
+                p.id, 
+                p.user_id, 
+                p.content, 
+                p.created_at,
+                COALESCE(
+                    json_agg(DISTINCT pi.image_url) FILTER (WHERE pi.image_url IS NOT NULL),
+                    '[]'::json
+                ) as images,
+                COUNT(DISTINCT l.id) as like_count
+            FROM posts p
+            LEFT JOIN post_images pi ON p.id = pi.post_id
+            LEFT JOIN post_likes l ON p.id = l.post_id
+            GROUP BY p.id, p.user_id, p.content, p.created_at
+            ORDER BY p.created_at DESC
+        `
+		rows, err = DB.Query(r.Context(), query)
+	} else {
+		// Authenticated feed query with liked_by_me
+		query = `
+            SELECT 
+                p.id, 
+                p.user_id as post_user_id, 
+                p.content, 
+                p.created_at,
+                COALESCE(
+                    json_agg(DISTINCT pi.image_url) FILTER (WHERE pi.image_url IS NOT NULL),
+                    '[]'::json
+                ) as images,
+                COUNT(DISTINCT l.id) as like_count,
+                EXISTS(SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = $1) as liked_by_me
+            FROM posts p
+            LEFT JOIN post_images pi ON p.id = pi.post_id
+            LEFT JOIN post_likes l ON p.id = l.post_id
+            GROUP BY p.id, p.user_id, p.content, p.created_at
+            ORDER BY p.created_at DESC
+        `
+		rows, err = DB.Query(r.Context(), query, userID)
+	}
+
 	if err != nil {
+		fmt.Printf("Database error in GetPosts: %v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{
 			"error": "Failed to get posts: " + err.Error(),
@@ -267,25 +294,61 @@ func GetPosts(w http.ResponseWriter, r *http.Request) {
 	var posts []map[string]interface{}
 
 	for rows.Next() {
-		var id, userID, content string
-		var createdAt time.Time
-		var images []string
-		var likeCount int
-		var likedByMe bool
+		if userID == "" {
+			// Scan for public feed (6 columns)
+			var id, postUserID, content string
+			var createdAt time.Time
+			var images []string
+			var likeCount int
 
-		if err := rows.Scan(&id, &userID, &content, &createdAt, &images, &likeCount, &likedByMe); err != nil {
-			continue
+			err := rows.Scan(&id, &postUserID, &content, &createdAt, &images, &likeCount)
+			if err != nil {
+				fmt.Printf("Error scanning row: %v\n", err)
+				continue
+			}
+
+			posts = append(posts, map[string]interface{}{
+				"id":          id,
+				"user_id":     postUserID,
+				"content":     content,
+				"images":      images,
+				"created_at":  createdAt,
+				"like_count":  likeCount,
+				"liked_by_me": false,
+			})
+		} else {
+			// Scan for authenticated feed (7 columns)
+			var id, postUserID, content string
+			var createdAt time.Time
+			var images []string
+			var likeCount int
+			var likedByMe bool
+
+			err := rows.Scan(&id, &postUserID, &content, &createdAt, &images, &likeCount, &likedByMe)
+			if err != nil {
+				fmt.Printf("Error scanning row: %v\n", err)
+				continue
+			}
+
+			posts = append(posts, map[string]interface{}{
+				"id":          id,
+				"user_id":     postUserID,
+				"content":     content,
+				"images":      images,
+				"created_at":  createdAt,
+				"like_count":  likeCount,
+				"liked_by_me": likedByMe,
+			})
 		}
+	}
 
-		posts = append(posts, map[string]interface{}{
-			"id":          id,
-			"user_id":     userID,
-			"content":     content,
-			"images":      images,
-			"created_at":  createdAt,
-			"like_count":  likeCount,
-			"liked_by_me": likedByMe,
+	if err = rows.Err(); err != nil {
+		fmt.Printf("Rows iteration error: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "Error processing results",
 		})
+		return
 	}
 
 	json.NewEncoder(w).Encode(posts)
