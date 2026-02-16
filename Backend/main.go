@@ -4,6 +4,7 @@ import (
 	database "backend/AuthDatabase"
 	handlers "backend/post/handlers"
 	utils "backend/utils"
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -47,6 +48,14 @@ func main() {
 	defer pool.Close()
 	handlers.DB = pool
 
+	// Like Handling
+	ctx := context.Background()
+	err = createLikesTable(ctx, pool)
+	if err != nil {
+		log.Fatal("Failed to create likes table:", err)
+	}
+	fmt.Println("✅ Likes table ready")
+
 	mux := http.NewServeMux()
 
 	// Public routes
@@ -64,4 +73,22 @@ func main() {
 
 	log.Println("Server running on http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", handler))
+}
+
+func createLikesTable(ctx context.Context, db *pgxpool.Pool) error {
+	query := `
+	CREATE TABLE IF NOT EXISTS post_likes (
+		id BIGSERIAL PRIMARY KEY,
+		post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+		user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+		UNIQUE(post_id, user_id)
+	);
+	
+	CREATE INDEX IF NOT EXISTS idx_post_likes_post_id ON post_likes(post_id);
+	CREATE INDEX IF NOT EXISTS idx_post_likes_user_id ON post_likes(user_id);
+	`
+	
+	_, err := db.Exec(ctx, query)
+	return err
 }
