@@ -5,69 +5,198 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Social Media Practice</title>
 <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    form { margin-bottom: 20px; padding: 20px; border: 1px solid #ccc; }
-    input, textarea { margin: 5px; padding: 5px; width: 100%; }
-    button { padding: 5px 10px; margin-top: 5px; }
-    .post { border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; }
-    .post img { max-width: 200px; margin-right: 10px; }
-    .error { color: red; }
-    .success { color: green; }
+    body { font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }
+    form { margin-bottom: 20px; padding: 20px; border: 1px solid #ccc; background: white; border-radius: 8px; }
+    input, textarea { margin: 5px; padding: 8px; width: 100%; border: 1px solid #ddd; border-radius: 4px; }
+    button { padding: 8px 15px; margin-top: 5px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background-color: #0056b3; }
+    .post { background: white; border: 1px solid #e1e1e1; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .post img { max-width: 200px; margin-right: 10px; border-radius: 4px; }
+    .error { color: red; padding: 10px; background: #ffeeee; border-radius: 4px; }
+    .success { color: green; padding: 10px; background: #eeffee; border-radius: 4px; }
     .post-images {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin: 15px 0;
-}
-
-.image-container {
-    flex: 0 0 auto;
-}
-
-.post-image {
-    max-width: 300px;
-    max-height: 300px;
-    border-radius: 8px;
-    object-fit: cover;
-    cursor: pointer;
-    transition: transform 0.2s;
-}
-
-.post-image:hover {
-    transform: scale(1.02);
-}
-
-.post-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-}
-
-.post-user {
-    font-weight: bold;
-    color: #333;
-}
-
-.post-time {
-    color: #888;
-    font-size: 0.9em;
-}
-
-.post-content {
-    margin-bottom: 15px;
-    line-height: 1.5;
-    color: #333;
-}
-
-.post {
-    background: white;
-    border: 1px solid #e1e1e1;
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 15px 0;
+    }
+    .image-container {
+        flex: 0 0 auto;
+    }
+    .post-image {
+        max-width: 300px;
+        max-height: 300px;
+        border-radius: 8px;
+        object-fit: cover;
+        cursor: pointer;
+        transition: transform 0.2s;
+        border: 1px solid #eee;
+    }
+    .post-image:hover {
+        transform: scale(1.02);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .post-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #eee;
+    }
+    .post-user {
+        font-weight: bold;
+        color: #333;
+        font-size: 1.1em;
+    }
+    .post-time {
+        color: #888;
+        font-size: 0.9em;
+    }
+    .post-content {
+        margin-bottom: 15px;
+        line-height: 1.5;
+        color: #333;
+    }
+    
+    /* Like button styles */
+    .post-footer {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-top: 15px;
+        padding-top: 10px;
+        border-top: 1px solid #eee;
+    }
+    
+    .like-button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 1.2em;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        color: #666;
+        padding: 5px 10px;
+        border-radius: 20px;
+        transition: all 0.2s;
+    }
+    
+    .like-button:hover {
+        background-color: #f0f0f0;
+    }
+    
+    .like-button.liked {
+        color: #e74c3c;
+    }
+    
+    .like-button.liked .heart-icon {
+        color: #e74c3c;
+        animation: heartPop 0.3s ease;
+    }
+    
+    .heart-icon {
+        font-size: 1.3em;
+        transition: transform 0.2s;
+    }
+    
+    .like-button:hover .heart-icon {
+        transform: scale(1.1);
+    }
+    
+    .like-count {
+        font-weight: 500;
+    }
+    
+    .likes-info {
+        color: #666;
+        font-size: 0.9em;
+        margin-left: 10px;
+    }
+    
+    .likes-list {
+        margin-top: 10px;
+        padding: 10px;
+        background: #f9f9f9;
+        border-radius: 4px;
+        font-size: 0.9em;
+    }
+    
+    .likes-list h4 {
+        margin: 0 0 5px 0;
+        color: #555;
+    }
+    
+    .likes-list ul {
+        margin: 0;
+        padding-left: 20px;
+    }
+    
+    @keyframes heartPop {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.3); }
+        100% { transform: scale(1); }
+    }
+    
+    .no-posts {
+        text-align: center;
+        padding: 40px;
+        background: white;
+        border-radius: 8px;
+        color: #666;
+    }
+    
+    .message {
+        margin-top: 10px;
+        padding: 8px;
+        border-radius: 4px;
+    }
+    
+    /* Like viewer modal */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+    }
+    
+    .modal-content {
+        background-color: white;
+        margin: 15% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%;
+        max-width: 500px;
+        border-radius: 8px;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+    
+    .close:hover {
+        color: black;
+    }
+    
+    .like-user-item {
+        padding: 8px;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .like-user-item:last-child {
+        border-bottom: none;
+    }
 </style>
 </head>
 <body>
@@ -95,7 +224,7 @@
 </form>
 
 <!-- User Info (hidden until login) -->
-<div id="userInfo" style="display:none; padding: 10px; background: #f0f0f0; margin-bottom: 20px;">
+<div id="userInfo" style="display:none; padding: 10px; background: #f0f0f0; margin-bottom: 20px; border-radius: 4px;">
     <p>Logged in as: <span id="loggedInUser"></span></p>
     <button onclick="logout()">Logout</button>
 </div>
@@ -111,6 +240,15 @@
 
 <h2>Feed</h2>
 <div id="feed"></div>
+
+<!-- Likes Viewer Modal -->
+<div id="likesModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeLikesModal()">&times;</span>
+        <h3 id="modalPostTitle">People who liked this post</h3>
+        <div id="likesList"></div>
+    </div>
+</div>
 
 <script>
 // Storage keys
@@ -247,11 +385,10 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         console.log('Login response:', data);
         
         if (response.ok) {
-            // Check different possible token field names
             const token = data.token || data.access_token || data.jwt;
             if (token) {
                 saveToken(token);
-                saveUserInfo(data.user || { email: email });
+                saveUserInfo(data.user || { email: email, id: data.user_id });
                 messageDiv.textContent = 'Login successful!';
                 messageDiv.className = 'success';
                 document.getElementById('loginForm').reset();
@@ -260,7 +397,6 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
             } else {
                 messageDiv.textContent = 'No token received from server';
                 messageDiv.className = 'error';
-                console.error('Token not found in response:', data);
             }
         } else {
             messageDiv.textContent = data.error || data.message || 'Login failed';
@@ -299,7 +435,6 @@ document.getElementById('postForm').addEventListener('submit', async (e) => {
     const formData = new FormData();
     formData.append('content', content);
     
-    // Add images if any
     if (imagesInput.files.length > 0) {
         for (let i = 0; i < imagesInput.files.length; i++) {
             formData.append('images', imagesInput.files[i]);
@@ -307,22 +442,15 @@ document.getElementById('postForm').addEventListener('submit', async (e) => {
     }
 
     try {
-        console.log('Creating post with token:', token.substring(0, 20) + '...');
-        
         const response = await fetch(CREATE_POST_ENDPOINT, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
-                // Don't set Content-Type for FormData - browser sets it automatically with boundary
             },
             body: formData
         });
 
-        console.log('Post response status:', response.status);
-        
-        let data;
         const responseText = await response.text();
-        console.log('Post response text:', responseText);
         
         try {
             data = JSON.parse(responseText);
@@ -353,14 +481,169 @@ document.getElementById('postForm').addEventListener('submit', async (e) => {
     }
 });
 
+// ----------------- Like Functions -----------------
+async function likePost(postId, button) {
+    const token = getToken();
+    if (!token) {
+        alert('Please login to like posts');
+        return;
+    }
+
+    const likeCountSpan = document.getElementById(`like-count-${postId}`);
+    const currentCount = parseInt(likeCountSpan.textContent) || 0;
+
+    try {
+        const response = await fetch(`http://localhost:8080/posts/${postId}/like`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+        
+        if (response.ok) {
+            button.classList.add('liked');
+            likeCountSpan.textContent = data.like_count;
+            
+            // Update the button text
+            const heartSpan = button.querySelector('.heart-icon');
+            if (heartSpan) {
+                heartSpan.textContent = '❤️';
+            }
+        } else {
+            if (response.status === 401) {
+                alert('Session expired. Please login again.');
+                clearAuth();
+            } else {
+                alert(data.error || 'Failed to like post');
+            }
+        }
+    } catch (err) {
+        console.error('Error liking post:', err);
+        alert('Error connecting to server');
+    }
+}
+
+async function unlikePost(postId, button) {
+    const token = getToken();
+    if (!token) {
+        alert('Please login to unlike posts');
+        return;
+    }
+
+    try {
+        const response = await fetch(`http://localhost:8080/posts/${postId}/unlike`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+        
+        if (response.ok) {
+            button.classList.remove('liked');
+            document.getElementById(`like-count-${postId}`).textContent = data.like_count;
+            
+            const heartSpan = button.querySelector('.heart-icon');
+            if (heartSpan) {
+                heartSpan.textContent = '🤍';
+            }
+        } else {
+            if (response.status === 401) {
+                alert('Session expired. Please login again.');
+                clearAuth();
+            } else {
+                alert(data.error || 'Failed to unlike post');
+            }
+        }
+    } catch (err) {
+        console.error('Error unliking post:', err);
+        alert('Error connecting to server');
+    }
+}
+
+function toggleLike(postId, button) {
+    if (button.classList.contains('liked')) {
+        unlikePost(postId, button);
+    } else {
+        likePost(postId, button);
+    }
+}
+
+async function viewLikes(postId) {
+    const token = getToken();
+    if (!token) {
+        alert('Please login to see who liked this post');
+        return;
+    }
+
+    try {
+        const response = await fetch(`http://localhost:8080/posts/${postId}/likes`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        const users = await response.json();
+        
+        const modal = document.getElementById('likesModal');
+        const likesList = document.getElementById('likesList');
+        
+        likesList.innerHTML = '';
+        
+        if (users.length === 0) {
+            likesList.innerHTML = '<p>No likes yet</p>';
+        } else {
+            users.forEach(user => {
+                const userDiv = document.createElement('div');
+                userDiv.className = 'like-user-item';
+                userDiv.innerHTML = `
+                    <strong>${user.username || 'Anonymous'}</strong>
+                    <small style="color: #888; float: right;">${new Date(user.liked_at).toLocaleString()}</small>
+                `;
+                likesList.appendChild(userDiv);
+            });
+        }
+        
+        modal.style.display = 'block';
+    } catch (err) {
+        console.error('Error fetching likes:', err);
+        alert('Failed to load likes');
+    }
+}
+
+function closeLikesModal() {
+    document.getElementById('likesModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('likesModal');
+    if (event.target == modal) {
+        modal.style.display = 'none';
+    }
+}
+
 // ----------------- Get Feed -----------------
 async function getFeed() {
     try {
+        const token = getToken();
+        const headers = {
+            'Accept': 'application/json'
+        };
+        
+        // Add auth header if token exists (for liked_by_me field)
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        
         const response = await fetch('http://localhost:8080/posts/feed', {
             method: 'GET',
-            headers: {
-                'Accept': 'application/json'
-            }
+            headers: headers
         });
         
         if (!response.ok) {
@@ -387,26 +670,31 @@ async function getFeed() {
             const postEl = document.createElement('div');
             postEl.className = 'post';
             
-            // Build images HTML if there are images
+            // Build images HTML
             let imagesHTML = '';
             if (post.images && post.images.length > 0) {
                 imagesHTML = '<div class="post-images">';
                 post.images.forEach(img => {
                     if (img) {
-                        // Use the correct URL path
                         const imageUrl = img.startsWith('http') ? img : `http://localhost:8080/uploads/${img}`;
                         imagesHTML += `
                             <div class="image-container">
                                 <img src="${imageUrl}" 
                                      alt="Post image" 
                                      class="post-image"
-                                     loading="lazy">
+                                     loading="lazy"
+                                     onclick="window.open('${imageUrl}', '_blank')">
                             </div>
                         `;
                     }
                 });
                 imagesHTML += '</div>';
             }
+            
+            // Determine like button state
+            const isLiked = post.liked_by_me || false;
+            const likeButtonClass = isLiked ? 'like-button liked' : 'like-button';
+            const heartIcon = isLiked ? '❤️' : '🤍';
             
             postEl.innerHTML = `
                 <div class="post-header">
@@ -415,7 +703,16 @@ async function getFeed() {
                 </div>
                 <div class="post-content">${post.content || ''}</div>
                 ${imagesHTML}
-                <hr>
+                <div class="post-footer">
+                    <button class="${likeButtonClass}" onclick="toggleLike('${post.id}', this)">
+                        <span class="heart-icon">${heartIcon}</span>
+                        <span class="like-count" id="like-count-${post.id}">${post.like_count || 0}</span>
+                    </button>
+                    <button class="like-button" onclick="viewLikes('${post.id}')" title="See who liked this">
+                        <span>👥</span>
+                        <span>View Likes</span>
+                    </button>
+                </div>
             `;
             feedDiv.appendChild(postEl);
         });
@@ -427,7 +724,7 @@ async function getFeed() {
             <div class="error">
                 <h3>Error loading feed</h3>
                 <p>${err.message}</p>
-                <button onclick="getFeed()">Retry</button>
+                <button onclick="getFeed()" style="background: #007bff; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">Retry</button>
             </div>
         `;
     }

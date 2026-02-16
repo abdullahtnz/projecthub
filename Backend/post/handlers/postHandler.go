@@ -230,21 +230,35 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 func GetPosts(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	rows, err := DB.Query(r.Context(),
-		`SELECT p.id, p.user_id, p.content, p.created_at,
-			COALESCE(
-				json_agg(pi.image_url) FILTER (WHERE pi.image_url IS NOT NULL),
-				'[]'
-			) as images
-		FROM posts p
-		LEFT JOIN post_images pi ON p.id = pi.post_id
-		GROUP BY p.id, p.user_id, p.content, p.created_at
-		ORDER BY p.created_at DESC`)
+	// Get user ID from context if authenticated
+	userID, _ := utils.GetUserIDFromContext(r) // Ignore error for public feed
 
+	query := `
+        SELECT 
+            p.id, 
+            p.user_id, 
+            p.content, 
+            p.created_at,
+            COALESCE(
+                json_agg(DISTINCT pi.image_url) FILTER (WHERE pi.image_url IS NOT NULL),
+                '[]'
+            ) as images,
+            COUNT(DISTINCT l.id) as like_count,
+            CASE WHEN $1 != '' THEN 
+                EXISTS(SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = $1)
+            ELSE false END as liked_by_me
+        FROM posts p
+        LEFT JOIN post_images pi ON p.id = pi.post_id
+        LEFT JOIN post_likes l ON p.id = l.post_id
+        GROUP BY p.id, p.user_id, p.content, p.created_at
+        ORDER BY p.created_at DESC
+    `
+
+	rows, err := DB.Query(r.Context(), query, userID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{
-			"error": "Failed to get posts",
+			"error": "Failed to get posts: " + err.Error(),
 		})
 		return
 	}
@@ -256,17 +270,21 @@ func GetPosts(w http.ResponseWriter, r *http.Request) {
 		var id, userID, content string
 		var createdAt time.Time
 		var images []string
+		var likeCount int
+		var likedByMe bool
 
-		if err := rows.Scan(&id, &userID, &content, &createdAt, &images); err != nil {
+		if err := rows.Scan(&id, &userID, &content, &createdAt, &images, &likeCount, &likedByMe); err != nil {
 			continue
 		}
 
 		posts = append(posts, map[string]interface{}{
-			"id":         id,
-			"user_id":    userID,
-			"content":    content,
-			"images":     images,
-			"created_at": createdAt,
+			"id":          id,
+			"user_id":     userID,
+			"content":     content,
+			"images":      images,
+			"created_at":  createdAt,
+			"like_count":  likeCount,
+			"liked_by_me": likedByMe,
 		})
 	}
 
