@@ -39,7 +39,7 @@ func LikePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Add like
-	insertQuery := `INSERT INTO post_likes (post_id, user_id) VALUES ($1, $2) ON CONFLICT (post_id, user_id) DO NOTHING`
+	insertQuery := `INSERT INTO likes (post_id, user_id) VALUES ($1, $2) ON CONFLICT (post_id, user_id) DO NOTHING`
 	_, err = DB.Exec(r.Context(), insertQuery, postID, userID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -49,7 +49,7 @@ func LikePost(w http.ResponseWriter, r *http.Request) {
 
 	// Get updated like count
 	var likeCount int
-	countQuery := `SELECT COUNT(*) FROM post_likes WHERE post_id = $1`
+	countQuery := `SELECT COUNT(*) FROM likes WHERE post_id = $1`
 	err = DB.QueryRow(r.Context(), countQuery, postID).Scan(&likeCount)
 	if err != nil {
 		likeCount = 0
@@ -84,7 +84,7 @@ func UnlikePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Remove like
-	deleteQuery := `DELETE FROM post_likes WHERE post_id = $1 AND user_id = $2`
+	deleteQuery := `DELETE FROM likes WHERE post_id = $1 AND user_id = $2`
 	_, err = DB.Exec(r.Context(), deleteQuery, postID, userID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -94,7 +94,7 @@ func UnlikePost(w http.ResponseWriter, r *http.Request) {
 
 	// Get updated like count
 	var likeCount int
-	countQuery := `SELECT COUNT(*) FROM post_likes WHERE post_id = $1`
+	countQuery := `SELECT COUNT(*) FROM likes WHERE post_id = $1`
 	err = DB.QueryRow(r.Context(), countQuery, postID).Scan(&likeCount)
 	if err != nil {
 		likeCount = 0
@@ -130,7 +130,7 @@ func GetLikeStatus(w http.ResponseWriter, r *http.Request) {
 
 	// Check if user liked the post
 	var liked bool
-	likeQuery := `SELECT EXISTS(SELECT 1 FROM post_likes WHERE post_id = $1 AND user_id = $2)`
+	likeQuery := `SELECT EXISTS(SELECT 1 FROM likes WHERE post_id = $1 AND user_id = $2)`
 	err = DB.QueryRow(r.Context(), likeQuery, postID, userID).Scan(&liked)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -140,7 +140,7 @@ func GetLikeStatus(w http.ResponseWriter, r *http.Request) {
 
 	// Get total like count
 	var likeCount int
-	countQuery := `SELECT COUNT(*) FROM post_likes WHERE post_id = $1`
+	countQuery := `SELECT COUNT(*) FROM likes WHERE post_id = $1`
 	err = DB.QueryRow(r.Context(), countQuery, postID).Scan(&likeCount)
 	if err != nil {
 		likeCount = 0
@@ -169,7 +169,7 @@ func GetPostLikes(w http.ResponseWriter, r *http.Request) {
 	// Get users who liked this post
 	query := `
 		SELECT u.id, u.username, u.email, l.created_at
-		FROM post_likes l
+		FROM likes l
 		JOIN users u ON l.user_id = u.id
 		WHERE l.post_id = $1
 		ORDER BY l.created_at DESC

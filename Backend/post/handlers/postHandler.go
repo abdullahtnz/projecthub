@@ -83,7 +83,7 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Printf("DEBUG CreatePost: User verified in DB: %s\n", dbUserID)
 
-	// Try simple insert first
+	// Simple insert
 	tx, err := DB.Begin(context.Background())
 	if err != nil {
 		fmt.Printf("DEBUG: Transaction begin error: %v\n", err)
@@ -187,10 +187,9 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 			}
 
 			// Insert image record into database
-			imageRecordID := uuid.New().String()
 			_, err = tx.Exec(context.Background(),
-				"INSERT INTO post_images (id, post_id, image_url) VALUES ($1, $2, $3)",
-				imageRecordID, postID, newFilename)
+				"INSERT INTO post_images (post_id, image_url) VALUES ($1, $2)",
+				postID, newFilename) 
 
 			if err != nil {
 				fmt.Printf("DEBUG: Failed to insert image record: %v\n", err)
@@ -253,7 +252,7 @@ func GetPosts(w http.ResponseWriter, r *http.Request) {
                 COUNT(DISTINCT l.id) as like_count
             FROM posts p
             LEFT JOIN post_images pi ON p.id = pi.post_id
-            LEFT JOIN post_likes l ON p.id = l.post_id
+            LEFT JOIN likes l ON p.id = l.post_id
             GROUP BY p.id, p.user_id, p.content, p.created_at
             ORDER BY p.created_at DESC
         `
@@ -271,10 +270,10 @@ func GetPosts(w http.ResponseWriter, r *http.Request) {
                     '[]'::json
                 ) as images,
                 COUNT(DISTINCT l.id) as like_count,
-                EXISTS(SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = $1) as liked_by_me
+                EXISTS(SELECT 1 FROM likes WHERE post_id = p.id AND user_id = $1) as liked_by_me
             FROM posts p
             LEFT JOIN post_images pi ON p.id = pi.post_id
-            LEFT JOIN post_likes l ON p.id = l.post_id
+            LEFT JOIN likes l ON p.id = l.post_id
             GROUP BY p.id, p.user_id, p.content, p.created_at
             ORDER BY p.created_at DESC
         `
