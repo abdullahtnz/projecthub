@@ -1,5 +1,13 @@
 import axios from 'axios';
-import { LoginCredentials, SignupCredentials, AuthResponse, Post, LikeResponse, LikeUser } from '../types';
+import type { 
+  LoginCredentials, 
+  SignupCredentials, 
+  AuthResponse, 
+  Post, 
+  LikeResponse, 
+  LikeUser,
+  CreatePostData 
+} from '../types';
 
 const API_URL = 'http://localhost:8080';
 
@@ -17,28 +25,28 @@ api.interceptors.request.use((config) => {
 });
 
 // Auth endpoints
-export const login = async (credentials: LoginCredentials) => {
+export const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
   const response = await api.post<AuthResponse>('/login', credentials);
   return response.data;
 };
 
-export const signup = async (credentials: SignupCredentials) => {
+export const signup = async (credentials: SignupCredentials): Promise<AuthResponse> => {
   const response = await api.post<AuthResponse>('/signup', credentials);
   return response.data;
 };
 
 // Posts endpoints
-export const getFeed = async () => {
+export const getFeed = async (): Promise<Post[]> => {
   const response = await api.get<Post[]>('/posts/feed');
   return response.data;
 };
 
-export const createPost = async (data: CreatePostData) => {
+export const createPost = async (data: CreatePostData): Promise<any> => {
   const formData = new FormData();
   formData.append('content', data.content);
   
   if (data.images) {
-    data.images.forEach((image) => {
+    data.images.forEach((image: File) => {
       formData.append('images', image);
     });
   }
@@ -52,28 +60,28 @@ export const createPost = async (data: CreatePostData) => {
 };
 
 // Like endpoints
-export const likePost = async (postId: string) => {
+export const likePost = async (postId: string): Promise<LikeResponse> => {
   const response = await api.post<LikeResponse>(`/posts/${postId}/like`);
   return response.data;
 };
 
-export const unlikePost = async (postId: string) => {
+export const unlikePost = async (postId: string): Promise<LikeResponse> => {
   const response = await api.post<LikeResponse>(`/posts/${postId}/unlike`);
   return response.data;
 };
 
-export const getLikeStatus = async (postId: string) => {
+export const getLikeStatus = async (postId: string): Promise<LikeResponse> => {
   const response = await api.get<LikeResponse>(`/posts/${postId}/like-status`);
   return response.data;
 };
 
-export const getPostLikes = async (postId: string) => {
+export const getPostLikes = async (postId: string): Promise<LikeUser[]> => {
   const response = await api.get<LikeUser[]>(`/posts/${postId}/likes`);
   return response.data;
 };
 
 // Helper to get image URL
-export const getImageUrl = (filename: string) => {
+export const getImageUrl = (filename: string): string => {
   return `${API_URL}/uploads/${filename}`;
 };
 
