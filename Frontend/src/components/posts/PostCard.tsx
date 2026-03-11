@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Post, LikeUser } from '../../types';
 import { likePost, unlikePost, getLikeStatus, getPostLikes, getImageUrl } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -86,11 +87,13 @@ const PostCard: React.FC<PostCardProps> = ({ post, onPostUpdate }) => {
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-4">
       <div className="p-4">
         <div className="flex items-center mb-3">
-          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-semibold">
-            {post.user?.username?.charAt(0).toUpperCase() || '?'}
-          </div>
+          <Link to={`/profile/${post.user_id || ''}`} className="flex items-center">
+            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-semibold">
+              {post.user?.username?.charAt(0).toUpperCase() || '?'}
+            </div>
+          </Link>
           <div className="ml-3">
-            <p className="font-semibold text-gray-900">{post.user?.username || 'Unknown User'}</p>
+            <Link to={`/profile/${post.user_id || ''}`} className="font-semibold text-gray-900 hover:underline">{post.user?.username || 'Unknown User'}</Link>
             <p className="text-xs text-gray-500">{formatDate(post.created_at)}</p>
           </div>
         </div>
@@ -98,13 +101,13 @@ const PostCard: React.FC<PostCardProps> = ({ post, onPostUpdate }) => {
         <p className="text-gray-800 whitespace-pre-wrap mb-3">{post.content}</p>
 
         {post.images && post.images.length > 0 && (
-          <div className={`grid gap-2 mb-3 ${post.images.length === 1 ? 'grid-cols-1' : post.images.length === 2 ? 'grid-cols-2' : 'grid-cols-2'}`}>
+          <div className={`grid gap-1 mb-3 ${post.images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
             {post.images.map((image, index) => (
               <img
                 key={index}
                 src={getImageUrl(image)}
                 alt={`Post image ${index + 1}`}
-                className="w-full h-48 object-cover rounded-lg"
+                className="w-full max-h-96 object-contain rounded-lg bg-gray-100"
               />
             ))}
           </div>

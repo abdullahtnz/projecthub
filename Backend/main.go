@@ -59,6 +59,8 @@ func main() {
 	mux.Handle("/dashboard", utils.JWTMiddleware(http.HandlerFunc(database.DashboardHandler)))
 	mux.Handle("/profile", utils.JWTMiddleware(http.HandlerFunc(database.DashboardHandler)))
 	mux.Handle("/posts", utils.JWTMiddleware(http.HandlerFunc(handlers.CreatePost))) // POST only, protected
+	mux.Handle("/posts/my", utils.JWTMiddleware(http.HandlerFunc(handlers.GetMyPosts))) // POST only, protected
+	mux.Handle("/posts/user", utils.JWTMiddleware(http.HandlerFunc(handlers.GetUserPosts))) // POST only, protected
 
 	// Like routes
 	mux.Handle("/posts/{id}/like", utils.JWTMiddleware(http.HandlerFunc(handlers.LikePost)))

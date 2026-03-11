@@ -1,36 +1,35 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { getUserPosts } from '../services/api';
+import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { getUserPostsById } from '../services/api';
 import { Post } from '../types';
 import PostCard from '../components/posts/PostCard';
 
-const Profile: React.FC = () => {
-  const { user } = useAuth();
+const ProfileView: React.FC = () => {
+  const { userId } = useParams<{ userId: string }>();
   const [posts, setPosts] = useState<Post[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  const fetchUserPosts = useCallback(async () => {
-    if (!user?.id) return;
-    setIsLoading(true);
-    setError('');
-
-    try {
-      const postsData = await getUserPosts(user.id);
-      setPosts(postsData);
-    } catch (err: unknown) {
-      const errorObj = err as { response?: { data?: { message?: string; error?: string } } };
-      setError(errorObj.response?.data?.message || errorObj.response?.data?.error || 'Failed to load profile');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user?.id]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>('');
 
   useEffect(() => {
-    fetchUserPosts();
-  }, [fetchUserPosts]);
+    const fetchData = async () => {
+      if (!userId) {
+        setError('No user specified');
+        setLoading(false);
+        return;
+      }
+      try {
+        const userPosts = await getUserPostsById(userId);
+        setPosts(userPosts);
+      } catch {
+        setError('Failed to load posts');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [userId]);
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="w-full max-w-3xl mx-auto">
         <div className="flex items-center justify-center h-64">
@@ -51,15 +50,15 @@ const Profile: React.FC = () => {
           <div className="relative -mt-16 mb-4">
             <div className="h-28 w-28 rounded-full bg-white p-1">
               <div className="h-full w-full rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white text-4xl font-bold">
-                {user?.username?.charAt(0).toUpperCase() || '?'}
+                ?
               </div>
             </div>
           </div>
           
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">{user?.username}</h1>
-              <p className="text-gray-500">{user?.email}</p>
+              <h1 className="text-2xl font-bold text-gray-900">User Profile</h1>
+              <p className="text-gray-500">@{userId?.slice(0, 8)}</p>
             </div>
             <div className="flex items-center space-x-2 bg-gray-100 px-4 py-2 rounded-lg">
               <span className="font-semibold text-gray-900">{posts.length}</span>
@@ -72,16 +71,10 @@ const Profile: React.FC = () => {
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
           <p>{error}</p>
-          <button 
-            onClick={fetchUserPosts} 
-            className="text-sm underline mt-2 hover:text-red-800"
-          >
-            Try again
-          </button>
         </div>
       )}
 
-      <h2 className="text-lg font-semibold text-gray-800 mb-4">My Posts</h2>
+      <h2 className="text-lg font-semibold text-gray-800 mb-4">Posts</h2>
 
       {posts.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
@@ -91,16 +84,11 @@ const Profile: React.FC = () => {
             </svg>
           </div>
           <h3 className="text-xl font-semibold text-gray-700 mb-2">No posts yet</h3>
-          <p className="text-gray-500">Share your first post from the feed!</p>
         </div>
       ) : (
         <div>
           {posts.map((post) => (
-            <PostCard 
-              key={post.id} 
-              post={post} 
-              onPostUpdate={fetchUserPosts}
-            />
+            <PostCard key={post.id} post={post} />
           ))}
         </div>
       )}
@@ -108,4 +96,4 @@ const Profile: React.FC = () => {
   );
 };
 
-export default Profile;
+export default ProfileView;

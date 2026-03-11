@@ -92,8 +92,14 @@ export const getUserProfile = async (): Promise<AuthResponse> => {
   return response.data;
 };
 
-export const getUserPosts = async (): Promise<Post[]> => {
-  const response = await api.get<Post[]>('/posts/user');
+export const getUserPosts = async (userId: string): Promise<Post[]> => {
+  const response = await api.get<Post[]>(`/posts/user?user_id=${userId}`);
+  return response.data;
+};
+
+// Get posts by another user using user_id query param
+export const getUserPostsById = async (userId: string): Promise<Post[]> => {
+  const response = await api.get<Post[]>(`/posts/user?user_id=${userId}`);
   return response.data;
 };
 

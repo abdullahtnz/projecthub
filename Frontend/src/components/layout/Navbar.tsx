@@ -53,15 +53,15 @@ const Navbar: React.FC = () => {
                 
                 <div className="h-6 w-px bg-primary-700 mx-2"></div>
                 
-                <div className="flex items-center space-x-3">
-                  <div className="flex items-center">
-                    <div className="h-8 w-8 rounded-full bg-primary-700 flex items-center justify-center text-white font-semibold text-sm border border-primary-600">
-                      {user.username?.charAt(0).toUpperCase()}
-                    </div>
-                    <span className="ml-2 text-sm text-gray-300">
+                  <div className="flex items-center space-x-3">
+                    <Link to={`/profile/${user.id}`} className="flex items-center">
+                      <div className="h-8 w-8 rounded-full bg-primary-700 flex items-center justify-center text-white font-semibold text-sm border border-primary-600">
+                        {user.username?.charAt(0).toUpperCase()}
+                      </div>
+                    </Link>
+                    <Link to={`/profile/${user.id}`} className="ml-2 text-sm text-gray-300 hover:underline hidden md:inline">
                       {user.username}
-                    </span>
-                  </div>
+                    </Link>
                   
                   <button
                     onClick={handleLogout}

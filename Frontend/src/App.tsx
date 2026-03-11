@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/layout/ProtectedRoute';
+import ProfileView from './pages/ProfileView';
 import Navbar from './components/layout/Navbar';
 import Feed from './pages/Feed';
 import Login from './components/auth/Login';
@@ -25,6 +26,11 @@ function App() {
               <Route path="/profile" element={
                 <ProtectedRoute>
                   <Profile />
+                </ProtectedRoute>
+              } />
+              <Route path="/profile/:userId" element={
+                <ProtectedRoute>
+                  <ProfileView />
                 </ProtectedRoute>
               } />
             </Routes>
