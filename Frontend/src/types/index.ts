@@ -51,3 +51,20 @@ export interface CreatePostData {
   content: string;
   images?: File[];
 }
+
+export interface CreatePostResponse {
+  message: string;
+  post_id: string;
+  user_id: string;
+  content: string;
+  images: string[];
+}
+
+export interface DashboardResponse {
+  message: string;
+  user: User;
+  stats?: {
+    total_posts: number;
+    total_likes: number;
+  };
+}

@@ -6,7 +6,9 @@ import type {
   Post, 
   LikeResponse, 
   LikeUser,
-  CreatePostData 
+  CreatePostData,
+  CreatePostResponse,
+  DashboardResponse
 } from '../types';
 
 const API_URL = 'http://localhost:8080';
@@ -41,7 +43,7 @@ export const getFeed = async (): Promise<Post[]> => {
   return response.data;
 };
 
-export const createPost = async (data: CreatePostData): Promise<any> => {
+export const createPost = async (data: CreatePostData): Promise<CreatePostResponse> => {
   const formData = new FormData();
   formData.append('content', data.content);
   
@@ -77,6 +79,21 @@ export const getLikeStatus = async (postId: string): Promise<LikeResponse> => {
 
 export const getPostLikes = async (postId: string): Promise<LikeUser[]> => {
   const response = await api.get<LikeUser[]>(`/posts/${postId}/likes`);
+  return response.data;
+};
+
+export const getDashboard = async (): Promise<DashboardResponse> => {
+  const response = await api.get<DashboardResponse>('/dashboard');
+  return response.data;
+};
+
+export const getUserProfile = async (): Promise<AuthResponse> => {
+  const response = await api.get<AuthResponse>('/profile');
+  return response.data;
+};
+
+export const getUserPosts = async (): Promise<Post[]> => {
+  const response = await api.get<Post[]>('/posts/user');
   return response.data;
 };
 

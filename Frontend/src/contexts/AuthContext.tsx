@@ -1,4 +1,5 @@
-import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import React, { createContext, useState, useContext, ReactNode } from 'react';
 import { User, LoginCredentials, SignupCredentials } from '../types';
 import { login as loginApi, signup as signupApi } from '../services/api';
 
@@ -25,22 +26,19 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+const getStoredUser = (): User | null => {
+  const stored = localStorage.getItem('user');
+  return stored ? JSON.parse(stored) : null;
+};
 
-  useEffect(() => {
-    // Load user from localStorage on mount
-    const storedUser = localStorage.getItem('user');
-    const storedToken = localStorage.getItem('token');
-    
-    if (storedUser && storedToken) {
-      setUser(JSON.parse(storedUser));
-      setToken(storedToken);
-    }
-    setIsLoading(false);
-  }, []);
+const getStoredToken = (): string | null => {
+  return localStorage.getItem('token');
+};
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(getStoredUser);
+  const [token, setToken] = useState<string | null>(getStoredToken);
+  const isLoading = false;
 
   const login = async (credentials: LoginCredentials) => {
     try {
