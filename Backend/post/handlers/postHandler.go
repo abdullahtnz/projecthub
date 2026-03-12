@@ -515,3 +515,45 @@ func GetUserPosts(w http.ResponseWriter, r *http.Request) {
 
     json.NewEncoder(w).Encode(posts)
 }
+
+func GetUsername(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json")
+
+    // Get user_id from query parameter
+    userID := r.URL.Query().Get("user_id")
+    if userID == "" {
+        w.WriteHeader(http.StatusBadRequest)
+        json.NewEncoder(w).Encode(map[string]string{
+            "error": "User ID required",
+        })
+        return
+    }
+
+    // Query database for username
+    var username string
+    err := DB.QueryRow(r.Context(),
+        "SELECT username FROM users WHERE id = $1", userID).Scan(&username)
+
+    if err != nil {
+        if err.Error() == "no rows in result set" {
+            w.WriteHeader(http.StatusNotFound)
+            json.NewEncoder(w).Encode(map[string]string{
+                "error": "User not found",
+            })
+            return
+        }
+        
+        fmt.Printf("Database error in GetUsername: %v\n", err)
+        w.WriteHeader(http.StatusInternalServerError)
+        json.NewEncoder(w).Encode(map[string]string{
+            "error": "Database error",
+        })
+        return
+    }
+
+    // Success response
+    json.NewEncoder(w).Encode(map[string]string{
+        "user_id": userID,
+        "username": username,
+    })
+}

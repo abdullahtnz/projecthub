@@ -103,6 +103,12 @@ export const getUserPostsById = async (userId: string): Promise<Post[]> => {
   return response.data;
 };
 
+// Get username by user ID
+export const getUsername = async (userId: string): Promise<{ user_id: string; username: string }> => {
+  const response = await api.get<{ user_id: string; username: string }>(`/user/username?user_id=${userId}`);
+  return response.data;
+};
+
 // Helper to get image URL
 export const getImageUrl = (filename: string): string => {
   return `${API_URL}/uploads/${filename}`;

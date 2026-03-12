@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getFeed } from '../services/api';
+import { getFeed, getUsername } from '../services/api';
 import { Post } from '../types';
 import PostCard from '../components/posts/PostCard';
 import CreatePost from '../components/posts/CreatePost';
@@ -17,7 +17,34 @@ const Feed: React.FC = () => {
 
     try {
       const data = await getFeed();
-      setPosts(data);
+      
+      // Get unique user IDs
+      const userIds = Array.from(new Set(data.map(p => p.user_id).filter(Boolean)));
+      
+      // Fetch usernames for all unique users
+      const usernameMap: Record<string, string> = {};
+      await Promise.all(
+        userIds.map(async (userId) => {
+          try {
+            const userData = await getUsername(userId);
+            usernameMap[userId] = userData.username;
+          } catch {
+            usernameMap[userId] = 'Unknown User';
+          }
+        })
+      );
+      
+      // Attach username to each post
+      const postsWithUsernames = data.map(post => ({
+        ...post,
+        user: {
+          id: post.user_id,
+          username: usernameMap[post.user_id] || 'Unknown User',
+          email: ''
+        }
+      }));
+      
+      setPosts(postsWithUsernames);
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string; error?: string } } };
       setError(error.response?.data?.message || error.response?.data?.error || 'Failed to load posts');

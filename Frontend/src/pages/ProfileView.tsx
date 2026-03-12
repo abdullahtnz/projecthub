@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { getUserPostsById } from '../services/api';
+import { getUserPostsById, getUsername } from '../services/api';
 import { Post } from '../types';
 import PostCard from '../components/posts/PostCard';
 
 const ProfileView: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
+  const [username, setUsername] = useState<string>('');
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
@@ -18,10 +19,14 @@ const ProfileView: React.FC = () => {
         return;
       }
       try {
-        const userPosts = await getUserPostsById(userId);
+        const [userData, userPosts] = await Promise.all([
+          getUsername(userId),
+          getUserPostsById(userId)
+        ]);
+        setUsername(userData.username);
         setPosts(userPosts);
       } catch {
-        setError('Failed to load posts');
+        setError('Failed to load profile');
       } finally {
         setLoading(false);
       }
@@ -50,15 +55,14 @@ const ProfileView: React.FC = () => {
           <div className="relative -mt-16 mb-4">
             <div className="h-28 w-28 rounded-full bg-white p-1">
               <div className="h-full w-full rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white text-4xl font-bold">
-                ?
+                {username ? username.charAt(0).toUpperCase() : '?'}
               </div>
             </div>
           </div>
           
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">User Profile</h1>
-              <p className="text-gray-500">@{userId?.slice(0, 8)}</p>
+              <h1 className="text-2xl font-bold text-gray-900">{username}</h1>
             </div>
             <div className="flex items-center space-x-2 bg-gray-100 px-4 py-2 rounded-lg">
               <span className="font-semibold text-gray-900">{posts.length}</span>
